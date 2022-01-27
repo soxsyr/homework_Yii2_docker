@@ -1,0 +1,80 @@
+FROM php:7.3-apache-buster
+
+WORKDIR /app
+EXPOSE 80
+ENV APACHE_DOCUMENT_ROOT /app/www
+
+COPY . .
+# Enable the Rewrite Apache mod
+RUN cd /etc/apache2/mods-enabled && \
+    ln -s ../mods-available/rewrite.load
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf && \
+    sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf && \
+    a2enmod rewrite
+
+RUN apt-get update && \
+	apt-get install -y \
+		apt-utils
+
+
+
+
+RUN docker-php-source extract \
+&& apt-get update \
+&& apt-get install libldap2-dev libxml2-dev nano -y \
+        libapache2-mod-security2 \
+        libxslt-dev \
+        libicu-dev \
+        libpq-dev \
+	git \
+	zip \
+	curl \
+	sudo \
+	unzip \
+	libicu-dev \
+	libbz2-dev \
+	libjpeg-dev \
+	libwebp-dev \
+	libmcrypt-dev \
+	libreadline-dev \
+	g++ \
+	libxpm-dev \
+	zlib1g-dev \
+	libzip-dev
+
+
+RUN apt-get update && apt-get install -y \
+	libfreetype6-dev \
+	libjpeg62-turbo-dev \ 
+	libpng-dev \
+&& docker-php-ext-install -j$(nproc) iconv \
+&& docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+&& docker-php-ext-install -j$(nproc) gd
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install zip
+RUN apt-get update && \
+     apt-get install --fix-missing -y \
+         libzip-dev \
+         && docker-php-ext-install zip
+
+FROM composer AS vendor
+COPY composer.json /app
+COPY composer.lock /app
+RUN ["composer", "install", "--ignore-platform-reqs", "--prefer-dist"]
+
+
+RUN apk add libzip-dev
+RUN apk add libpng
+
+
+RUN docker-php-ext-install zip
+
+# -- mysql
+RUN docker-php-ext-install pdo pdo_mysql session
+
+# Copy HTTP server config
+COPY 000-default.conf /etc/apache2/sites-available/
+
+

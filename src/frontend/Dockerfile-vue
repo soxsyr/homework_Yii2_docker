@@ -1,0 +1,25 @@
+FROM node:17-buster
+
+EXPOSE 80
+WORKDIR /app
+
+ENV PATH="/app/frontend/node_modules/.bin/:${PATH}"
+COPY package.json ./
+
+RUN apt-get install git
+RUN npm init -y && git init
+
+RUN npm install -g @vue/cli eslint
+
+RUN npm i -g pm2
+
+
+# Copy rest of the files
+COPY . .
+
+
+RUN npm install
+
+# Build the project
+RUN npm run build
+

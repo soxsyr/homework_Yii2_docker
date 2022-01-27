@@ -1,0 +1,18 @@
+version: "3"
+services:
+
+        vueapp:
+                container_name: vue
+                build: 
+                        context: ./src/frontend/  
+                        dockerfile: Dockerfile-vue
+        app:
+                container_name: php 
+                build:
+                        context: ./src/backend/
+                        dockerfile: Dockerfile-serv
+        db:
+                container_name: mysql
+                build:
+                        context: ./src/backend/
+                        dockerfile: Dockerfile-db
